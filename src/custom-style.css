@@ -1,0 +1,15 @@
+@import url("observablehq:default.css");
+@import url("observablehq:theme-ocean-floor.css");
+
+:root {
+  --observablehq-max-width: 100vw;
+  --observablehq-max-height: 100vh;
+}
+
+#observablehq-main {
+    margin: 0;
+}
+
+#observablehq-center {
+    margin: 0;
+}

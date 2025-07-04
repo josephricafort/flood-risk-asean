@@ -1,111 +1,155 @@
 ---
 toc: false
+theme: [ocean-floor]
+style: custom-style.css
 ---
 
-<div class="hero">
-  <h1>Flood Risk ASEAN</h1>
-  <h2>Welcome to your new app! Edit&nbsp;<code style="font-size: 90%;">src/index.md</code> to change this page.</h2>
-  <a href="https://observablehq.com/framework/getting-started">Get started<span style="display: inline-block; margin-left: 0.25rem;">↗︎</span></a>
+```js
+const coverageForm = Inputs.range([0, 1], {value: 0.5, label: "Coverage", step: 0.01});
+const radiusForm = Inputs.range([500, 20000], {value: 1000, label: "Radius", step: 100});
+const upperPercentileForm = Inputs.range([0, 100], {value: 100, label: "Upper percentile", step: 1});
+
+const coverage = view(coverageForm)
+const radius = view(radiusForm)
+const upperPercentile = view(upperPercentileForm)
+```
+
+<div style="margin: 0;">
+<div class="inputs">
+    ${coverageForm}
+    ${radiusForm}
+    ${upperPercentileForm}
+</div>
+<figure style="max-width: none; position: relative; margin: 0;">
+  <div id="container" style="border-radius: 8px; overflow: hidden; background: rgb(18, 35, 48); height: 100vh; margin: 0; "></div>
+  <div style="position: absolute; top: 1rem; right: 1rem; filter: drop-shadow(0 0 4px rgba(0,0,0,.5));">${colorLegend}</div>
+  <figcaption>Data: <a href="https://www.data.gov.uk/dataset/cb7ae6f0-4be6-4935-9277-47e5ce24a11f/road-safety-data">Department for Transport</a></figcaption>
+</figure>
+
 </div>
 
-<div class="grid grid-cols-2" style="grid-auto-rows: 504px;">
-  <div class="card">${
-    resize((width) => Plot.plot({
-      title: "Your awesomeness over time 🚀",
-      subtitle: "Up and to the right!",
-      width,
-      y: {grid: true, label: "Awesomeness"},
-      marks: [
-        Plot.ruleY([0]),
-        Plot.lineY(aapl, {x: "Date", y: "Close", tip: true})
-      ]
-    }))
-  }</div>
-  <div class="card">${
-    resize((width) => Plot.plot({
-      title: "How big are penguins, anyway? 🐧",
-      width,
-      grid: true,
-      x: {label: "Body mass (g)"},
-      y: {label: "Flipper length (mm)"},
-      color: {legend: true},
-      marks: [
-        Plot.linearRegressionY(penguins, {x: "body_mass_g", y: "flipper_length_mm", stroke: "species"}),
-        Plot.dot(penguins, {x: "body_mass_g", y: "flipper_length_mm", stroke: "species", tip: true})
-      ]
-    }))
-  }</div>
-</div>
+```js
+import deck from "npm:deck.gl";
+const {DeckGL, AmbientLight, GeoJsonLayer, HexagonLayer, LightingEffect, PointLight} = deck;
 
----
+// const data = FileAttachment("./data/dft-road-collisions.csv").csv
+const data = FileAttachment("./data/ghs_pop_points.csv").csv({array: true, typed: false}).then((data) => {
+  return data.slice(1)
+});
+const topo = import.meta.resolve("npm:visionscarto-world-atlas/world/50m.json");
+const world = fetch(topo).then((response) => response.json());
+const countries = world.then((world) => topojson.feature(world, world.objects.countries));
 
-## Next steps
+const colorRange = [
+  [1, 152, 189],
+  [73, 227, 206],
+  [216, 254, 181],
+  [254, 237, 177],
+  [254, 173, 84],
+  [209, 55, 78]
+];
 
-Here are some ideas of things you could try…
+const colorLegend = Plot.plot({
+  margin: 0,
+  marginTop: 20,
+  width: 180,
+  height: 35,
+  style: "color: white;",
+  x: {padding: 0, axis: null},
+  marks: [
+    Plot.cellX(colorRange, {fill: ([r, g, b]) => `rgb(${r},${g},${b})`, inset: 0.5}),
+    Plot.text(["Fewer"], {frameAnchor: "top-left", dy: -12}),
+    Plot.text(["More"], {frameAnchor: "top-right", dy: -12})
+  ]
+});
 
-<div class="grid grid-cols-4">
-  <div class="card">
-    Chart your own data using <a href="https://observablehq.com/framework/lib/plot"><code>Plot</code></a> and <a href="https://observablehq.com/framework/files"><code>FileAttachment</code></a>. Make it responsive using <a href="https://observablehq.com/framework/javascript#resize(render)"><code>resize</code></a>.
-  </div>
-  <div class="card">
-    Create a <a href="https://observablehq.com/framework/project-structure">new page</a> by adding a Markdown file (<code>whatever.md</code>) to the <code>src</code> folder.
-  </div>
-  <div class="card">
-    Add a drop-down menu using <a href="https://observablehq.com/framework/inputs/select"><code>Inputs.select</code></a> and use it to filter the data shown in a chart.
-  </div>
-  <div class="card">
-    Write a <a href="https://observablehq.com/framework/loaders">data loader</a> that queries a local database or API, generating a data snapshot on build.
-  </div>
-  <div class="card">
-    Import a <a href="https://observablehq.com/framework/imports">recommended library</a> from npm, such as <a href="https://observablehq.com/framework/lib/leaflet">Leaflet</a>, <a href="https://observablehq.com/framework/lib/dot">GraphViz</a>, <a href="https://observablehq.com/framework/lib/tex">TeX</a>, or <a href="https://observablehq.com/framework/lib/duckdb">DuckDB</a>.
-  </div>
-  <div class="card">
-    Ask for help, or share your work or ideas, on our <a href="https://github.com/observablehq/framework/discussions">GitHub discussions</a>.
-  </div>
-  <div class="card">
-    Visit <a href="https://github.com/observablehq/framework">Framework on GitHub</a> and give us a star. Or file an issue if you’ve found a bug!
-  </div>
-</div>
-
-<style>
-
-.hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-family: var(--sans-serif);
-  margin: 4rem 0 8rem;
-  text-wrap: balance;
-  text-align: center;
+function getTooltip({object}) {
+  if (!object) return null;
+  const [lng, lat] = object.position;
+  const count = object.points?.length;
+  return `latitude: ${lat.toFixed(2)}
+    longitude: ${lng.toFixed(2)}
+    ${count} collisions`;
 }
 
-.hero h1 {
-  margin: 1rem 0;
-  padding: 1rem 0;
-  max-width: none;
-  font-size: 14vw;
-  font-weight: 900;
-  line-height: 1;
-  background: linear-gradient(30deg, var(--theme-foreground-focus), currentColor);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+const effects = [
+  new LightingEffect({
+    ambientLight: new AmbientLight({color: [255, 255, 255], intensity: 1.0}),
+    pointLight: new PointLight({color: [255, 255, 255], intensity: 0.8, position: [-0.144528, 49.739968, 80000]}),
+    pointLight2: new PointLight({color: [255, 255, 255], intensity: 0.8, position: [-3.807751, 54.104682, 8000]})
+  })
+];
 
-.hero h2 {
-  margin: 0;
-  max-width: 34em;
-  font-size: 20px;
-  font-style: initial;
-  font-weight: 500;
-  line-height: 1.5;
-  color: var(--theme-foreground-muted);
-}
+const t = (function* () {
+  const duration = 1000;
+  const start = performance.now();
+  const end = start + duration;
+  let now;
+  while ((now = performance.now()) < end) yield d3.easeCubicInOut(Math.max(0, (now - start) / duration));
+  yield 1;
+})();
+```
 
-@media (min-width: 640px) {
-  .hero h1 {
-    font-size: 90px;
-  }
-}
+```js
+const seaCoords = { long: 115.9539243, lat: 1.7673744 }
 
-</style>
+const initialViewState = {
+  longitude: seaCoords.long,
+  latitude: seaCoords.lat,
+  zoom: 4.5,
+  minZoom: 3,
+  maxZoom: 15,
+  pitch: 40.5,
+  bearing: 0
+};
+
+const deckInstance = new DeckGL({
+  container,
+  initialViewState,
+  getTooltip,
+  effects,
+  controller: true
+});
+
+// clean up if this code re-runs
+invalidation.then(() => {
+  deckInstance.finalize();
+  container.innerHTML = "";
+});
+
+deckInstance.setProps({
+  layers: [
+    new GeoJsonLayer({
+      id: "base-map",
+      data: countries,
+      lineWidthMinPixels: 1,
+      getLineColor: [60, 60, 60],
+      getFillColor: [9, 16, 29]
+    }),
+    new HexagonLayer({
+      id: "heatmap",
+      data, 
+      coverage,
+      radius,
+      upperPercentile,
+      colorRange,
+      colorAggregation: "SUM",
+      getColorWeight: d => +d[4],
+      elevationScale: 100,
+      elevationRange: [0, 5000 * t],
+      elevationAggregation: "SUM",
+      extruded: true,
+      getPosition: (d) => [ +d[9], +d[10] ],
+      getElevationWeight: d => +d[4],
+      pickable: true,
+      material: {
+        ambient: 0.64,
+        diffuse: 0.6,
+        shininess: 32,
+        specularColor: [51, 51, 51]
+      }
+    })
+  ]
+});
+
+```
