@@ -6,7 +6,7 @@ style: custom-style.css
 
 ```js
 const coverageForm = Inputs.range([0, 1], {value: 0.5, label: "Coverage", step: 0.01});
-const radiusForm = Inputs.range([500, 20000], {value: 1000, label: "Radius", step: 100});
+const radiusForm = Inputs.range([500, 20000], {value: 5000, label: "Radius", step: 100});
 const upperPercentileForm = Inputs.range([0, 100], {value: 100, label: "Upper percentile", step: 1});
 
 const coverage = view(coverageForm)
@@ -33,7 +33,7 @@ import deck from "npm:deck.gl";
 const {DeckGL, AmbientLight, GeoJsonLayer, HexagonLayer, LightingEffect, PointLight} = deck;
 
 // const data = FileAttachment("./data/dft-road-collisions.csv").csv
-const data = FileAttachment("./data/ghs_pop_points.csv").csv({array: true, typed: false}).then((data) => {
+const data = FileAttachment("./data/ghs_pop_points_intersect.csv").csv({array: true, typed: false}).then((data) => {
   return data.slice(1)
 });
 const topo = import.meta.resolve("npm:visionscarto-world-atlas/world/50m.json");
@@ -134,7 +134,7 @@ deckInstance.setProps({
       upperPercentile,
       colorRange,
       colorAggregation: "SUM",
-      getColorWeight: d => +d[4],
+      getColorWeight: d => +d[13],
       elevationScale: 100,
       elevationRange: [0, 5000 * t],
       elevationAggregation: "SUM",
