@@ -30,15 +30,26 @@ const upperPercentile = view(upperPercentileForm)
 
 ```js
 import deck from "npm:deck.gl";
-const {DeckGL, AmbientLight, GeoJsonLayer, HexagonLayer, LightingEffect, PointLight} = deck;
+const {DeckGL, AmbientLight, GeoJsonLayer, HexagonLayer, LightingEffect, PointLight, TextLayer} = deck;
 
-// const data = FileAttachment("./data/dft-road-collisions.csv").csv
-const data = FileAttachment("./data/ghs_pop_points_intersect.csv").csv({array: true, typed: false}).then((data) => {
+const data = FileAttachment("./data/ghs_pop_points_flood.csv").csv({ typed: false}).then((data) => {
   return data.slice(1)
 });
+const countriesAdminTopo = FileAttachment("./data/admin_all_countries.json").json()
+const seaAdminTopo = FileAttachment("./data/admin_boundaries.json").json()
+
 const topo = import.meta.resolve("npm:visionscarto-world-atlas/world/50m.json");
 const world = fetch(topo).then((response) => response.json());
 const countries = world.then((world) => topojson.feature(world, world.objects.countries));
+
+const countriesAdmin = countriesAdminTopo.then((countries) => topojson.feature(countries, countries.objects.admin_all_countries));
+const seaAdmin = seaAdminTopo.then((adminBoundaries) => topojson.feature(adminBoundaries, adminBoundaries.objects.admin_boundaries));
+
+const countryLabels = FileAttachment("./data/country_labels.csv")
+  .csv({ typed: true })
+  .then((data) => {
+    return data.slice(1)
+  });
 
 const colorRange = [
   [1, 152, 189],
@@ -91,6 +102,7 @@ const t = (function* () {
 ```
 
 ```js
+console.log("seaAdmin: ", seaAdmin)
 const seaCoords = { long: 115.9539243, lat: 1.7673744 }
 
 const initialViewState = {
@@ -103,28 +115,53 @@ const initialViewState = {
   bearing: 0
 };
 
+const [
+  CTRY_CODE, COUNTRY, GROUP, PATH,
+  CTRY_LONG, CTRY_LAT
+] = Array.from({ length: 6 }, (_, i) => i);
+
 const deckInstance = new DeckGL({
   container,
   initialViewState,
-  getTooltip,
+  // getTooltip,
   effects,
-  controller: true
+  controller: true,
 });
 
-// clean up if this code re-runs
-invalidation.then(() => {
-  deckInstance.finalize();
-  container.innerHTML = "";
-});
+const [
+  FID, ID, ROW_INDEX, COL_INDEX,
+  POP_SUM, POP_MEAN, POP_MEDIAN,
+  POP_MIN, POP_MAX, LONG, LAT,
+  POP_INT, FLOOD_FREQ
+] = Array.from({ length: 14 }, (_, i) => i);
 
 deckInstance.setProps({
   layers: [
+    new TextLayer({
+      id: 'country-labels',
+      data: countryLabels,
+      getPosition: d => [ +d["long_c"], +d["lat_c"] ],
+      getText: d => d["COUNTRY"],
+      getAlignmentBaseline: 'center',
+      getColor: [255, 128, 0],
+      getSize: 28,
+      getTextAnchor: 'middle',
+      pickable: true
+    }),
+    new GeoJsonLayer({
+      id: "internal-boundaries",
+      lineWidthMinPixels: 1,
+      data: seaAdmin,
+      getLineColor: [150, 150, 150],
+      getFillColor: [9, 16, 29, 0],
+    }),
     new GeoJsonLayer({
       id: "base-map",
       data: countries,
       lineWidthMinPixels: 1,
-      getLineColor: [60, 60, 60],
-      getFillColor: [9, 16, 29]
+      getLineColor: [200, 200, 200],
+      getFillColor: [9, 16, 29, 0],
+      getLineWidth: 100
     }),
     new HexagonLayer({
       id: "heatmap",
@@ -133,14 +170,14 @@ deckInstance.setProps({
       radius,
       upperPercentile,
       colorRange,
-      colorAggregation: "SUM",
-      getColorWeight: d => +d[13],
+      colorAggregation: "MAX",
+      getColorWeight: d => +d.flood_freq,
       elevationScale: 100,
       elevationRange: [0, 5000 * t],
-      elevationAggregation: "SUM",
+      elevationAggregation: "MAX",
       extruded: true,
-      getPosition: (d) => [ +d[9], +d[10] ],
-      getElevationWeight: d => +d[4],
+      getPosition: (d) => [ +d.long, +d.lat ], // [long, lat]
+      getElevationWeight: d => +d.pop_sum,
       pickable: true,
       material: {
         ambient: 0.64,
@@ -150,6 +187,12 @@ deckInstance.setProps({
       }
     })
   ]
+});
+
+// clean up if this code re-runs
+invalidation.then(() => {
+  deckInstance.finalize();
+  container.innerHTML = "";
 });
 
 ```
