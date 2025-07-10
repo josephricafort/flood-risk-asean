@@ -163,7 +163,7 @@ deckInstance.setProps({
       id: "base-map",
       data: countries,
       lineWidthMinPixels: 1,
-      getLineColor: [200, 200, 200],
+      getLineColor: [200, 200, 200, 50],
       getFillColor: [9, 16, 29, 255],
       getLineWidth: 100
     }),
@@ -179,7 +179,7 @@ deckInstance.setProps({
       lineWidthMinPixels: 1,
       data: floodAreas,
       getLineColor: [150, 150, 150],
-      getFillColor: [255, 165, 0, 100],
+      getFillColor: [255, 165, 0, 25],
     }),
     new HexagonLayer({
       id: "heatmap",
@@ -204,23 +204,23 @@ deckInstance.setProps({
         specularColor: [51, 51, 51]
       }
     }),
-    // new TextLayer({
-    //   id: 'admin-labels',
-    //   data: seaAdmin.features.map(d => d.properties),
-    //   getPosition: d => [ +d.long, +d.lat ],
-    //   getText: d => {
-    //     const nameLevel = !COUNTRIES_ADMIN2.includes(d["COUNTRY"]) ? "NAME_1" : "NAME_2"
-    //     return `${camelCaseToLocation(d[nameLevel]) || ""}`
-    //   },
-    //   getAlignmentBaseline: 'center',
-    //   getColor: [255, 255, 255],
-    //   getSize: 14,
-    //   getTextAnchor: 'middle',
-    //   pickable: true,
-    //   parameters: {
-    //     depthTest: false // <-- Forces it to render on top
-    //   }
-    // }),
+    new TextLayer({
+      id: 'admin-labels',
+      data: seaAdmin.features.map(d => d.properties),
+      getPosition: d => [ +d.long, +d.lat ],
+      getText: d => {
+        const nameLevel = !COUNTRIES_ADMIN2.includes(d["COUNTRY"]) ? "NAME_1" : "NAME_2"
+        return `${camelCaseToLocation(d[nameLevel]) || ""}`
+      },
+      getAlignmentBaseline: 'center',
+      getColor: [255, 255, 255],
+      getSize: 14,
+      getTextAnchor: 'middle',
+      pickable: true,
+      parameters: {
+        depthTest: false // <-- Forces it to render on top
+      }
+    }),
     new TextLayer({
       id: 'country-labels',
       data: countryLabels,
