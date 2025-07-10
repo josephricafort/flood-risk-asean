@@ -137,32 +137,21 @@ const [
 
 deckInstance.setProps({
   layers: [
-    new TextLayer({
-      id: 'country-labels',
-      data: countryLabels,
-      getPosition: d => [ +d["long_c"], +d["lat_c"] ],
-      getText: d => d["COUNTRY"],
-      getAlignmentBaseline: 'center',
-      getColor: [255, 128, 0],
-      getSize: 28,
-      getTextAnchor: 'middle',
-      pickable: true
-    }),
     new GeoJsonLayer({
       id: "internal-boundaries",
       lineWidthMinPixels: 1,
       data: seaAdmin,
       getLineColor: [150, 150, 150],
-      getFillColor: [9, 16, 29, 0],
+      getFillColor: [9, 16, 29, 255],
     }),
-    new GeoJsonLayer({
-      id: "base-map",
-      data: countries,
-      lineWidthMinPixels: 1,
-      getLineColor: [200, 200, 200],
-      getFillColor: [9, 16, 29, 0],
-      getLineWidth: 100
-    }),
+    // new GeoJsonLayer({
+    //   id: "base-map",
+    //   data: countries,
+    //   lineWidthMinPixels: 1,
+    //   getLineColor: [200, 200, 200],
+    //   getFillColor: [9, 16, 29, 255],
+    //   getLineWidth: 100
+    // }),
     new HexagonLayer({
       id: "heatmap",
       data, 
@@ -185,7 +174,21 @@ deckInstance.setProps({
         shininess: 32,
         specularColor: [51, 51, 51]
       }
-    })
+    }),
+    new TextLayer({
+      id: 'country-labels',
+      data: countryLabels,
+      getPosition: d => [ +d["long_c"], +d["lat_c"] ],
+      getText: d => d["COUNTRY"],
+      getAlignmentBaseline: 'center',
+      getColor: [255, 128, 255],
+      // getSize: 28,
+      getTextAnchor: 'middle',
+      pickable: true,
+      parameters: {
+        depthTest: false // <-- Forces it to render on top
+      }
+    }),
   ]
 });
 
