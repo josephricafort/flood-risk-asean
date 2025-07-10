@@ -77,10 +77,10 @@ const colorLegend = Plot.plot({
 function getTooltip({object}) {
   if (!object) return null;
   const [lng, lat] = object.position;
-  const count = object.points?.length;
+  // const count = object.points?.length;
   return `latitude: ${lat.toFixed(2)}
-    longitude: ${lng.toFixed(2)}
-    ${count} collisions`;
+    longitude: ${lng.toFixed(2)}`
+    // ${count} collisions`;
 }
 
 const effects = [
@@ -135,8 +135,23 @@ const [
   POP_INT, FLOOD_FREQ
 ] = Array.from({ length: 14 }, (_, i) => i);
 
+const seaAdminMap = new Map(seaAdmin.features.map(d => [ d.properties["GID_1" || "GID_2"], d.properties]))
+// console.log("seaAdminMap: ", seaAdminMap)
+// console.log("seaAdminMapProps: ", seaAdminMap.get("BRN.1_1"))
+console.log("seaAdmin.features.props: ", seaAdmin.features.map(d => d.properties))
+
+const COUNTRIES_ADMIN2 = ["Indonesia", "Malaysia", "Myanmar"]
+
 deckInstance.setProps({
   layers: [
+    new GeoJsonLayer({
+      id: "base-map",
+      data: countries,
+      lineWidthMinPixels: 1,
+      getLineColor: [200, 200, 200],
+      getFillColor: [9, 16, 29, 255],
+      getLineWidth: 100
+    }),
     new GeoJsonLayer({
       id: "internal-boundaries",
       lineWidthMinPixels: 1,
@@ -144,14 +159,6 @@ deckInstance.setProps({
       getLineColor: [150, 150, 150],
       getFillColor: [9, 16, 29, 255],
     }),
-    // new GeoJsonLayer({
-    //   id: "base-map",
-    //   data: countries,
-    //   lineWidthMinPixels: 1,
-    //   getLineColor: [200, 200, 200],
-    //   getFillColor: [9, 16, 29, 255],
-    //   getLineWidth: 100
-    // }),
     new HexagonLayer({
       id: "heatmap",
       data, 
@@ -173,6 +180,23 @@ deckInstance.setProps({
         diffuse: 0.6,
         shininess: 32,
         specularColor: [51, 51, 51]
+      }
+    }),
+    new TextLayer({
+      id: 'admin-labels',
+      data: seaAdmin.features.map(d => d.properties),
+      getPosition: d => [ +d.long, +d.lat ],
+      getText: d => {
+        const nameLevel = !COUNTRIES_ADMIN2.includes(d["COUNTRY"]) ? "NAME_1" : "NAME_2"
+        return `${d[nameLevel] || ""}`
+      },
+      getAlignmentBaseline: 'center',
+      getColor: [255, 255, 255],
+      getSize: 14,
+      getTextAnchor: 'middle',
+      pickable: true,
+      parameters: {
+        depthTest: false // <-- Forces it to render on top
       }
     }),
     new TextLayer({
