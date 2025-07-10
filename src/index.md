@@ -7,6 +7,8 @@ style: custom-style.css
 ```js
 import {camelCaseToLocation} from "./components/utils.js"
 
+const ALPHA = 125;
+
 const coverageForm = Inputs.range([0, 1], {value: 0.5, label: "Coverage", step: 0.01});
 const radiusForm = Inputs.range([500, 20000], {value: 5000, label: "Radius", step: 100});
 const upperPercentileForm = Inputs.range([0, 100], {value: 100, label: "Upper percentile", step: 1});
@@ -34,18 +36,29 @@ const upperPercentile = view(upperPercentileForm)
 import deck from "npm:deck.gl";
 const {DeckGL, AmbientLight, GeoJsonLayer, HexagonLayer, LightingEffect, PointLight, TextLayer} = deck;
 
+// Population data
 const data = FileAttachment("./data/ghs_points_pop_floods_admin.csv").csv({ typed: false}).then((data) => {
   return data.slice(1)
 });
-const countriesAdminTopo = FileAttachment("./data/admin_all_countries.json").json()
-const seaAdminTopo = FileAttachment("./data/admin_boundaries.json").json()
 
+// Country boundaries
+const countriesAdminTopo = FileAttachment("./data/admin_all_countries.json").json()
+const countriesAdmin = countriesAdminTopo.then((countries) => topojson.feature(countries, countries.objects.admin_all_countries));
+
+// Provincial and subdivisions admin boundaries
+const seaAdminTopo = FileAttachment("./data/admin_boundaries.json").json()
+const seaAdmin = seaAdminTopo.then((adminBoundaries) => topojson.feature(adminBoundaries, adminBoundaries.objects.admin_boundaries));
+
+// Flooded areas
+const floodAreasTopo = FileAttachment("./data/flood_areas.json").json()
+const floodAreas = floodAreasTopo.then((flood) => topojson.feature(flood, flood.objects.flood_areas));
+
+// Example country boundaries from deck.gl
 const topo = import.meta.resolve("npm:visionscarto-world-atlas/world/50m.json");
 const world = fetch(topo).then((response) => response.json());
 const countries = world.then((world) => topojson.feature(world, world.objects.countries));
 
-const countriesAdmin = countriesAdminTopo.then((countries) => topojson.feature(countries, countries.objects.admin_all_countries));
-const seaAdmin = seaAdminTopo.then((adminBoundaries) => topojson.feature(adminBoundaries, adminBoundaries.objects.admin_boundaries));
+
 
 const countryLabels = FileAttachment("./data/country_labels.csv")
   .csv({ typed: true })
@@ -54,12 +67,12 @@ const countryLabels = FileAttachment("./data/country_labels.csv")
   });
 
 const colorRange = [
-  [1, 152, 189],
-  [73, 227, 206],
-  [216, 254, 181],
-  [254, 237, 177],
-  [254, 173, 84],
-  [209, 55, 78]
+  [1, 152, 189, ALPHA],
+  [73, 227, 206, ALPHA],
+  [216, 254, 181, ALPHA],
+  [254, 237, 177, ALPHA],
+  [254, 173, 84, ALPHA],
+  [209, 55, 78, ALPHA]
 ];
 
 const colorLegend = Plot.plot({
@@ -154,12 +167,19 @@ deckInstance.setProps({
       getFillColor: [9, 16, 29, 255],
       getLineWidth: 100
     }),
+    // new GeoJsonLayer({
+    //   id: "internal-boundaries",
+    //   lineWidthMinPixels: 1,
+    //   data: seaAdmin,
+    //   getLineColor: [150, 150, 150],
+    //   getFillColor: [9, 16, 29, 255],
+    // }),
     new GeoJsonLayer({
-      id: "internal-boundaries",
+      id: "flood-areas",
       lineWidthMinPixels: 1,
-      data: seaAdmin,
+      data: floodAreas,
       getLineColor: [150, 150, 150],
-      getFillColor: [9, 16, 29, 255],
+      getFillColor: [255, 165, 0, 100],
     }),
     new HexagonLayer({
       id: "heatmap",
@@ -184,23 +204,23 @@ deckInstance.setProps({
         specularColor: [51, 51, 51]
       }
     }),
-    new TextLayer({
-      id: 'admin-labels',
-      data: seaAdmin.features.map(d => d.properties),
-      getPosition: d => [ +d.long, +d.lat ],
-      getText: d => {
-        const nameLevel = !COUNTRIES_ADMIN2.includes(d["COUNTRY"]) ? "NAME_1" : "NAME_2"
-        return `${camelCaseToLocation(d[nameLevel]) || ""}`
-      },
-      getAlignmentBaseline: 'center',
-      getColor: [255, 255, 255],
-      getSize: 14,
-      getTextAnchor: 'middle',
-      pickable: true,
-      parameters: {
-        depthTest: false // <-- Forces it to render on top
-      }
-    }),
+    // new TextLayer({
+    //   id: 'admin-labels',
+    //   data: seaAdmin.features.map(d => d.properties),
+    //   getPosition: d => [ +d.long, +d.lat ],
+    //   getText: d => {
+    //     const nameLevel = !COUNTRIES_ADMIN2.includes(d["COUNTRY"]) ? "NAME_1" : "NAME_2"
+    //     return `${camelCaseToLocation(d[nameLevel]) || ""}`
+    //   },
+    //   getAlignmentBaseline: 'center',
+    //   getColor: [255, 255, 255],
+    //   getSize: 14,
+    //   getTextAnchor: 'middle',
+    //   pickable: true,
+    //   parameters: {
+    //     depthTest: false // <-- Forces it to render on top
+    //   }
+    // }),
     new TextLayer({
       id: 'country-labels',
       data: countryLabels,
