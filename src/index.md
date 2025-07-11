@@ -7,7 +7,7 @@ style: custom-style.css
 ```js
 import {camelCaseToLocation} from "./components/utils.js"
 
-const ALPHA = 125;
+const ALPHA = 75;
 
 const coverageForm = Inputs.range([0, 1], {value: 0.5, label: "Coverage", step: 0.01});
 const radiusForm = Inputs.range([500, 20000], {value: 5000, label: "Radius", step: 100});
@@ -49,9 +49,13 @@ const countriesAdmin = countriesAdminTopo.then((countries) => topojson.feature(c
 const seaAdminTopo = FileAttachment("./data/admin_boundaries.json").json()
 const seaAdmin = seaAdminTopo.then((adminBoundaries) => topojson.feature(adminBoundaries, adminBoundaries.objects.admin_boundaries));
 
-// Flooded areas
+// Flooded areas GAUL
 const floodAreasTopo = FileAttachment("./data/flood_areas.json").json()
 const floodAreas = floodAreasTopo.then((flood) => topojson.feature(flood, flood.objects.flood_areas));
+
+// Admin with flooded data in GADM
+const adminFloodGADMTopo = FileAttachment("./data/flood_exposure_gadm_geojson.json").json();
+const adminFloodGADM = adminFloodGADMTopo.then((adminFlood) => topojson.feature(adminFlood, adminFlood.objects.flood_exposure_gadm_geojson1));
 
 // Example country boundaries from deck.gl
 const topo = import.meta.resolve("npm:visionscarto-world-atlas/world/50m.json");
@@ -117,7 +121,7 @@ const t = (function* () {
 ```
 
 ```js
-console.log("seaAdmin: ", seaAdmin)
+// console.log("adminFloodGADM: ", adminFloodGADM)
 const seaCoords = { long: 115.9539243, lat: 1.7673744 }
 
 const initialViewState = {
@@ -153,7 +157,7 @@ const [
 const seaAdminMap = new Map(seaAdmin.features.map(d => [ d.properties["GID_1" || "GID_2"], d.properties]))
 // console.log("seaAdminMap: ", seaAdminMap)
 // console.log("seaAdminMapProps: ", seaAdminMap.get("BRN.1_1"))
-console.log("seaAdmin.features.props: ", seaAdmin.features.map(d => d.properties))
+// console.log("seaAdmin.features.props: ", seaAdmin.features.map(d => d.properties))
 
 const COUNTRIES_ADMIN2 = ["Indonesia", "Malaysia", "Myanmar"]
 
@@ -174,10 +178,17 @@ deckInstance.setProps({
     //   getLineColor: [150, 150, 150],
     //   getFillColor: [9, 16, 29, 255],
     // }),
+    // new GeoJsonLayer({
+    //   id: "flood-areas",
+    //   lineWidthMinPixels: 1,
+    //   data: floodAreas,
+    //   getLineColor: [150, 150, 150],
+    //   getFillColor: [255, 165, 0, 25],
+    // }),
     new GeoJsonLayer({
-      id: "flood-areas",
+      id: "admin-flood-areas",
       lineWidthMinPixels: 1,
-      data: floodAreas,
+      data: adminFloodGADM,
       getLineColor: [150, 150, 150],
       getFillColor: [255, 165, 0, 25],
     }),
@@ -206,7 +217,7 @@ deckInstance.setProps({
     }),
     new TextLayer({
       id: 'admin-labels',
-      data: seaAdmin.features.map(d => d.properties),
+      data: adminFloodGADM.features.map(d => d.properties),
       getPosition: d => [ +d.long, +d.lat ],
       getText: d => {
         const nameLevel = !COUNTRIES_ADMIN2.includes(d["COUNTRY"]) ? "NAME_1" : "NAME_2"
