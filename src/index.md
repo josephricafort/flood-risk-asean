@@ -7,10 +7,10 @@ style: custom-style.css
 ```js
 import {camelCaseToLocation} from "./components/utils.js"
 
-const ALPHA = 75;
+const ALPHA = 100;
 
-const coverageForm = Inputs.range([0, 1], {value: 0.5, label: "Coverage", step: 0.01});
-const radiusForm = Inputs.range([500, 20000], {value: 5000, label: "Radius", step: 100});
+const coverageForm = Inputs.range([0, 1], {value: 0.9, label: "Coverage", step: 0.01});
+const radiusForm = Inputs.range([500, 20000], {value: 3800, label: "Radius", step: 100});
 const upperPercentileForm = Inputs.range([0, 100], {value: 100, label: "Upper percentile", step: 1});
 
 const coverage = view(coverageForm)
@@ -34,7 +34,8 @@ const upperPercentile = view(upperPercentileForm)
 
 ```js
 import deck from "npm:deck.gl";
-const {DeckGL, AmbientLight, GeoJsonLayer, HexagonLayer, LightingEffect, PointLight, TextLayer} = deck;
+const {DeckGL, AmbientLight, GeoJsonLayer, HexagonLayer, 
+  LightingEffect, PointLight, TextLayer, ContourLayer, HeatmapLayer} = deck;
 
 // Population data
 const data = FileAttachment("./data/ghs_points_pop_floods_admin.csv").csv({ typed: false}).then((data) => {
@@ -57,12 +58,17 @@ const floodAreas = floodAreasTopo.then((flood) => topojson.feature(flood, flood.
 const adminFloodGADMTopo = FileAttachment("./data/flood_exposure_gadm_geojson.json").json();
 const adminFloodGADM = adminFloodGADMTopo.then((adminFlood) => topojson.feature(adminFlood, adminFlood.objects.flood_exposure_gadm_geojson1));
 
+// Rivers and lakes
+const hydroRiversTopo = FileAttachment("./data/hydrorivers_sea.json").json();
+const hydroRivers = hydroRiversTopo.then((rivers) => topojson.feature(rivers, rivers.objects.hydrorivers_sea));
+
+const naturalearthLakesTopo = FileAttachment("./data/naturalearth_lakes.json").json();
+const naturalearthLakes = naturalearthLakesTopo.then((lakes) => topojson.feature(lakes, lakes.objects.naturalearth_lakes));
+
 // Example country boundaries from deck.gl
 const topo = import.meta.resolve("npm:visionscarto-world-atlas/world/50m.json");
 const world = fetch(topo).then((response) => response.json());
 const countries = world.then((world) => topojson.feature(world, world.objects.countries));
-
-
 
 const countryLabels = FileAttachment("./data/country_labels.csv")
   .csv({ typed: true })
@@ -185,13 +191,74 @@ deckInstance.setProps({
     //   getLineColor: [150, 150, 150],
     //   getFillColor: [255, 165, 0, 25],
     // }),
+    // new GeoJsonLayer({
+    //   id: "admin-flood-areas",
+    //   lineWidthMinPixels: 1,
+    //   data: adminFloodGADM,
+    //   colorRange,
+    //   getLineColor: [150, 150, 150],
+    //   getFillColor: [255, 165, 0, 25],
+    // }),
     new GeoJsonLayer({
-      id: "admin-flood-areas",
-      lineWidthMinPixels: 1,
-      data: adminFloodGADM,
+      id: "rivers",
+      lineWidthMinPixels: 5,
+      data: hydroRivers,
+      // colorRange,
       getLineColor: [150, 150, 150],
       getFillColor: [255, 165, 0, 25],
     }),
+    new GeoJsonLayer({
+      id: "lakes",
+      lineWidthMinPixels: 5,
+      data: naturalearthLakes,
+      // colorRange,
+      getLineColor: [150, 150, 150],
+      getFillColor: [150, 150, 150, 255],
+    }),
+    // new ContourLayer({
+    //   id: "flood-contours",
+    //   data,
+    //   cellSize: 3000,
+    //   contours: [
+    //     { threshold: 5,  color: [25, 132, 197], strokeWidth: 2, zIndex: 1 },
+    //     { threshold: 10, color: [34, 167, 240], strokeWidth: 2, zIndex: 1 },
+    //     { threshold: 15, color: [99, 191, 240], strokeWidth: 2, zIndex: 1 },
+    //     { threshold: 20, color: [167, 213, 237], strokeWidth: 2, zIndex: 1 },
+    //     { threshold: 25, color: [226, 226, 226], strokeWidth: 2, zIndex: 1 },
+    //     { threshold: 30, color: [225, 166, 146], strokeWidth: 2, zIndex: 1 },
+    //     { threshold: 35, color: [222, 110, 86], strokeWidth: 2, zIndex: 1 },
+    //     { threshold: 40, color: [225, 75, 49], strokeWidth: 2, zIndex: 1 },
+    //     { threshold: 45, color: [194, 55, 40], strokeWidth: 2, zIndex: 1 }
+    //   ],
+    //   getPosition: d => [ +d.long, +d.lat ], // [long, lat]
+    //   getWeight: d => +d.flood_frequency_max,
+    //   pickable: true
+    // }),
+    // new HeatmapLayer({
+    //   id: "flood-contours",
+    //   data,
+    //   // colorRange,
+    //   aggregation: 'MEAN',
+    //   getPosition: d => [ +d.long, +d.lat ], // [long, lat]
+    //   getWeight: d => +d.flood_frequency_mean,
+    //   radiusPixels: 25,
+    //   threshold: 0.02
+    // }),
+    // new ContourLayer({
+    //   id: 'contour-layer',
+    //   data: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/sf-bike-parking.json',
+
+    //   cellSize: 200,
+    //   contours: [
+    //     {threshold: 1, color: [255, 0, 0], strokeWidth: 2, zIndex: 1},
+    //     // {threshold: [3, 10], color: [55, 0, 55], zIndex: 0},
+    //     // {threshold: 5, color: [0, 255, 0], strokeWidth: 6, zIndex: 2},
+    //     // {threshold: 15, color: [0, 0, 255], strokeWidth: 4, zIndex: 3}
+    //   ],
+    //   getPosition: d => d.COORDINATES,
+    //   getWeight: d => d.SPACES,
+    //   pickable: true
+    // }),
     new HexagonLayer({
       id: "heatmap",
       data, 
@@ -215,23 +282,28 @@ deckInstance.setProps({
         specularColor: [51, 51, 51]
       }
     }),
-    new TextLayer({
-      id: 'admin-labels',
-      data: adminFloodGADM.features.map(d => d.properties),
-      getPosition: d => [ +d.long, +d.lat ],
-      getText: d => {
-        const nameLevel = !COUNTRIES_ADMIN2.includes(d["COUNTRY"]) ? "NAME_1" : "NAME_2"
-        return `${camelCaseToLocation(d[nameLevel]) || ""}`
-      },
-      getAlignmentBaseline: 'center',
-      getColor: [255, 255, 255],
-      getSize: 14,
-      getTextAnchor: 'middle',
-      pickable: true,
-      parameters: {
-        depthTest: false // <-- Forces it to render on top
-      }
-    }),
+    // new TextLayer({
+    //   id: 'admin-labels',
+    //   data: adminFloodGADM.features.map(d => d.properties),
+    //   getPosition: d => [ +d.long, +d.lat ],
+    //   getText: d => {
+    //     console.log("deckInstanceZoom: ", deckInstance.viewState.zoom)
+    //     const nameLevel = !COUNTRIES_ADMIN2.includes(d["COUNTRY"]) ? "NAME_1" : "NAME_2"
+    //     // return deckInstance.viewState.zoom > 8 ? `${camelCaseToLocation(d[nameLevel]) || ""}` : ""
+    //     return `${camelCaseToLocation(d[nameLevel]) || ""}`
+    //   },
+    //   getAlignmentBaseline: 'center',
+    //   getColor: [255, 255, 255],
+    //   getSize: 14,
+    //   getTextAnchor: 'middle',
+    //   pickable: true,
+    //   parameters: {
+    //     depthTest: false // <-- Forces it to render on top
+    //   },
+    //   // updateTriggers: {
+    //   //   getText: deckInstance.viewState.zoom
+    //   // }
+    // }),
     new TextLayer({
       id: 'country-labels',
       data: countryLabels,
