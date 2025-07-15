@@ -99,7 +99,7 @@ const colorLegend = Plot.plot({
   ]
 });
 
-function getTooltip({object}) {
+function getTooltip({ object }) {
   if (!object) return null;
   const { properties } = object;
   if (!properties) return null;
@@ -135,7 +135,7 @@ const t = (function* () {
 ```
 
 ```js
-// console.log("adminFloodGADM: ", adminFloodGADM)
+console.log("seaAdmin: ", seaAdmin)
 const seaCoords = { long: 115.9539243, lat: 1.7673744 }
 
 const initialViewState = {
@@ -153,30 +153,10 @@ const [
   CTRY_LONG, CTRY_LAT
 ] = Array.from({ length: 6 }, (_, i) => i);
 
-const deckInstance = new DeckGL({
-  container,
-  initialViewState,
-  getTooltip,
-  effects,
-  controller: true,
-});
+let hoveredBoundary = null
 
-const [
-  FID, ID, ROW_INDEX, COL_INDEX,
-  POP_SUM, POP_MEAN, POP_MEDIAN,
-  POP_MIN, POP_MAX, LONG, LAT,
-  POP_INT, FLOOD_FREQ
-] = Array.from({ length: 14 }, (_, i) => i);
-
-const seaAdminMap = new Map(seaAdmin.features.map(d => [ d.properties["GID_1" || "GID_2"], d.properties]))
-// console.log("seaAdminMap: ", seaAdminMap)
-// console.log("seaAdminMapProps: ", seaAdminMap.get("BRN.1_1"))
-// console.log("seaAdmin.features.props: ", seaAdmin.features.map(d => d.properties))
-
-const COUNTRIES_ADMIN2 = ["Indonesia", "Malaysia", "Myanmar"]
-
-deckInstance.setProps({
-  layers: [
+function getLayers(){
+  return [
     new GeoJsonLayer({
       id: "base-map",
       data: countries,
@@ -187,12 +167,32 @@ deckInstance.setProps({
     }),
     new GeoJsonLayer({
       id: "internal-boundaries",
-      lineWidthMinPixels: 1,
       data: seaAdmin,
-      getLineColor: [150, 150, 150],
-      getFillColor: [9, 16, 29, 255],
+      lineWidthUnits: "pixels",
+      lineWidthMinPixels: 0.5,
+      lineCapRounded: true,
+      lineJointRounded: true,
+      getLineColor: [255, 255, 255],
+      getFillColor: [9, 16, 29, 200],
       pickable: true,
-      onHover: ( info, event ) => { console.log("Hovered: ", info, event ) }
+      onHover: info => {
+        if (info.object) {
+          hoveredBoundary = (info.object.properties.GID_1 || "") + (info.object.properties.GID_2 || "");
+        } else {
+          hoveredBoundary = null;
+        }
+        deckInstance.setProps({ layers: getLayers() });
+      },
+      getLineWidth: d => {
+        const isHovered = hoveredBoundary === (d.properties.GID_1 || "") + (d.properties.GID_2 || "");
+        // console.log("hoveredBoundary: ", hoveredBoundary)
+        // console.log("seaAdminData:", d.properties.GID_1 || "") + (d.properties.GID_2 || "")
+        // console.log("isHovered: ", isHovered)
+        return isHovered ? 5 : 0.5;
+      },
+      updateTriggers: {
+        getLineWidth: [hoveredBoundary]
+      }
     }),
     // new GeoJsonLayer({
     //   id: "flood-areas",
@@ -329,7 +329,34 @@ deckInstance.setProps({
       }
     }),
   ]
+}
+
+const deckInstance = new DeckGL({
+  container,
+  initialViewState,
+  getTooltip,
+  effects,
+  controller: true,
+  layers: getLayers()
 });
+
+const [
+  FID, ID, ROW_INDEX, COL_INDEX,
+  POP_SUM, POP_MEAN, POP_MEDIAN,
+  POP_MIN, POP_MAX, LONG, LAT,
+  POP_INT, FLOOD_FREQ
+] = Array.from({ length: 14 }, (_, i) => i);
+
+const seaAdminMap = new Map(seaAdmin.features.map(d => [ d.properties["GID_1" || "GID_2"], d.properties]))
+// console.log("seaAdminMap: ", seaAdminMap)
+// console.log("seaAdminMapProps: ", seaAdminMap.get("BRN.1_1"))
+// console.log("seaAdmin.features.props: ", seaAdmin.features.map(d => d.properties))
+
+const COUNTRIES_ADMIN2 = ["Indonesia", "Malaysia", "Myanmar"]
+
+// deckInstance.setProps({
+//   layers
+// });
 
 // clean up if this code re-runs
 invalidation.then(() => {
