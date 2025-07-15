@@ -101,11 +101,19 @@ const colorLegend = Plot.plot({
 
 function getTooltip({object}) {
   if (!object) return null;
-  const [lng, lat] = object.position;
-  // const count = object.points?.length;
-  return `latitude: ${lat.toFixed(2)}
-    longitude: ${lng.toFixed(2)}`
-    // ${count} collisions`;
+  const { properties } = object;
+  if (!properties) return null;
+  const { COUNTRY, NAME_1, NAME_2 } = properties;
+
+  return object && properties && {
+    html: `<div>
+        <h3>${NAME_2 ? NAME_2 + ", " : ""}${NAME_1 ? NAME_1 + ", " : ""}${COUNTRY}</h3>
+      </div>`,
+    style: {
+      backgroundColor: '#000',
+      fontSize: '0.8em'
+    }
+  };
 }
 
 const effects = [
@@ -148,7 +156,7 @@ const [
 const deckInstance = new DeckGL({
   container,
   initialViewState,
-  // getTooltip,
+  getTooltip,
   effects,
   controller: true,
 });
@@ -175,15 +183,17 @@ deckInstance.setProps({
       lineWidthMinPixels: 1,
       getLineColor: [200, 200, 200, 50],
       getFillColor: [9, 16, 29, 255],
-      getLineWidth: 100
+      getLineWidth: 100,
     }),
-    // new GeoJsonLayer({
-    //   id: "internal-boundaries",
-    //   lineWidthMinPixels: 1,
-    //   data: seaAdmin,
-    //   getLineColor: [150, 150, 150],
-    //   getFillColor: [9, 16, 29, 255],
-    // }),
+    new GeoJsonLayer({
+      id: "internal-boundaries",
+      lineWidthMinPixels: 1,
+      data: seaAdmin,
+      getLineColor: [150, 150, 150],
+      getFillColor: [9, 16, 29, 255],
+      pickable: true,
+      onHover: ( info, event ) => { console.log("Hovered: ", info, event ) }
+    }),
     // new GeoJsonLayer({
     //   id: "flood-areas",
     //   lineWidthMinPixels: 1,
@@ -274,7 +284,7 @@ deckInstance.setProps({
       extruded: true,
       getPosition: (d) => [ +d.long, +d.lat ], // [long, lat]
       getElevationWeight: d => +d.pop_sum,
-      pickable: true,
+      // pickable: true,
       material: {
         ambient: 0.64,
         diffuse: 0.6,
