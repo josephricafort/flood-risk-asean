@@ -5,6 +5,7 @@ style: custom-style.css
 ---
 
 ```js
+import { geoContains } from "d3-geo";
 import {camelCaseToLocation} from "./components/utils.js"
 
 const ALPHA = 100;
@@ -41,88 +42,6 @@ const popData = FileAttachment("./data/ghs_points_pop_floods_admin.csv").csv({ t
   return pop.slice(1)
 });
 
-// COUNTRY
-// : 
-// "Brunei"
-// ENGTYPE_1
-// : 
-// "District"
-// ENGTYPE_2
-// : 
-// ""
-// GID_0
-// : 
-// "BRN"
-// GID_1
-// : 
-// "BRN.1_1"
-// GID_2
-// : 
-// ""
-// NAME_1
-// : 
-// "Belait"
-// NAME_2
-// : 
-// ""
-// col_index
-// : 
-// "539"
-// col_index_2
-// : 
-// "539"
-// fid
-// : 
-// "27"
-// flood_frequency_max
-// : 
-// "2"
-// flood_frequency_mean
-// : 
-// "0.159375"
-// flood_frequency_median
-// : 
-// "0"
-// flood_frequency_min
-// : 
-// "0"
-// id
-// : 
-// "497534"
-// id_2
-// : 
-// "497534"
-// lat
-// : 
-// "4.58393805409188"
-// long
-// : 
-// "114.224137788124"
-// pop_int
-// : 
-// "24454"
-// pop_max
-// : 
-// "2771.322265625"
-// pop_mean
-// : 
-// "905.689852657417"
-// pop_median
-// : 
-// "460.841796875"
-// pop_min
-// : 
-// "0.0333612039685249"
-// pop_sum
-// : 
-// "24453.6260217503"
-// row_index
-// : 
-// "575"
-// row_index_2
-// : 
-// "575"
-
 // Country boundaries
 const countriesAdminTopo = FileAttachment("./data/admin_all_countries.json").json()
 const countriesAdmin = countriesAdminTopo.then((countries) => topojson.feature(countries, countries.objects.admin_all_countries));
@@ -155,14 +74,44 @@ const countryLabels = FileAttachment("./data/country_labels.csv")
   .csv({ typed: true })
   .then((data) => { return data.slice(1) });
 
+// const colorRange = [
+//   [1, 152, 189, ALPHA],
+//   [73, 227, 206, ALPHA],
+//   [216, 254, 181, ALPHA],
+//   [254, 237, 177, ALPHA],
+//   [254, 173, 84, ALPHA],
+//   [209, 55, 78, ALPHA]
+// ];
+
 const colorRange = [
-  [1, 152, 189, ALPHA],
-  [73, 227, 206, ALPHA],
-  [216, 254, 181, ALPHA],
-  [254, 237, 177, ALPHA],
-  [254, 173, 84, ALPHA],
-  [209, 55, 78, ALPHA]
+  [1, 152, 189, ALPHA],     // blue-green
+  [37, 190, 197, ALPHA],    // lighter blue-green
+  [73, 227, 206, ALPHA],    // aqua
+  [140, 240, 194, ALPHA],   // minty green
+  [200, 250, 188, ALPHA],   // pastel green
+  [216, 254, 181, ALPHA],   // yellow-green
+  [235, 245, 179, ALPHA],   // pale yellow
+  [254, 237, 177, ALPHA],   // soft yellow
+  [254, 205, 130, ALPHA],   // peach
+  [254, 173, 84, ALPHA],    // orange
+  [209, 55, 78, ALPHA]      // deep red
 ];
+
+function getColorRange(alpha) { 
+  return [
+  [1, 152, 189, alpha],     // blue-green
+  [37, 190, 197, alpha],    // lighter blue-green
+  [73, 227, 206, alpha],    // aqua
+  [140, 240, 194, alpha],   // minty green
+  [200, 250, 188, alpha],   // pastel green
+  [216, 254, 181, alpha],   // yellow-green
+  [235, 245, 179, alpha],   // pale yellow
+  [254, 237, 177, alpha],   // soft yellow
+  [254, 205, 130, alpha],   // peach
+  [254, 173, 84, alpha],    // orange
+  [209, 55, 78, alpha]      // deep red
+  ]
+}
 
 const colorLegend = Plot.plot({
   margin: 0,
@@ -217,7 +166,7 @@ const popDataMap = new Map([...new Set(popData.map(d => d["GID_1"] || d["GID_2"]
 )
 
 console.log("popDataMap: ", popDataMap)
-// console.log("seaAdmin: ", seaAdmin)
+console.log("popData: ", popData)
 
 function getTooltip({ object }) {
   if (!object) return null;
@@ -244,6 +193,10 @@ function getTooltip({ object }) {
     }
   };
 }
+
+// function hoveredFeature(hovBound) = seaAdmin.features.find(
+//   f => (f.properties.GID_1 || "") + (f.properties.GID_2 || "") === hovBound
+// );
 
 const seaCoords = { long: 115.9539243, lat: 1.7673744 }
 
@@ -294,9 +247,6 @@ function getLayers(){
       },
       getLineWidth: d => {
         const isHovered = hoveredBoundary === (d.properties.GID_1 || "") + (d.properties.GID_2 || "");
-        // console.log("hoveredBoundary: ", hoveredBoundary)
-        // console.log("seaAdminData:", d.properties.GID_1 || "") + (d.properties.GID_2 || "")
-        // console.log("isHovered: ", isHovered)
         return isHovered ? 5 : 0.5;
       },
       updateTriggers: {
@@ -384,7 +334,11 @@ function getLayers(){
       coverage,
       radius,
       upperPercentile,
-      colorRange,
+      // getOpacity: d => {
+      //   const isHovered = hoveredBoundary === (d.GID_1 || "") + (d.GID_2 || "");
+      //   return isHovered ? 1 : 0.25
+      // },
+      colorRange: getColorRange(200),
       colorAggregation: "MAX",
       getColorWeight: d => +d.flood_frequency_max,
       elevationScale: 100,
@@ -399,7 +353,10 @@ function getLayers(){
         diffuse: 0.6,
         shininess: 32,
         specularColor: [51, 51, 51]
-      }
+      },
+      // updateTriggers: {
+      //   getOpacity: [hoveredBoundary]
+      // }
     }),
     // new TextLayer({
     //   id: 'admin-labels',
