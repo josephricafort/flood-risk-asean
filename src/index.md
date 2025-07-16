@@ -29,7 +29,6 @@ const upperPercentile = view(upperPercentileForm)
   <div style="position: absolute; top: 1rem; right: 1rem; filter: drop-shadow(0 0 4px rgba(0,0,0,.5));">${colorLegend}</div>
   <figcaption>Data: <a href="https://www.data.gov.uk/dataset/cb7ae6f0-4be6-4935-9277-47e5ce24a11f/road-safety-data">Department for Transport</a></figcaption>
 </figure>
-
 </div>
 
 ```js
@@ -38,9 +37,91 @@ const {DeckGL, AmbientLight, GeoJsonLayer, HexagonLayer,
   LightingEffect, PointLight, TextLayer, ContourLayer, HeatmapLayer} = deck;
 
 // Population data
-const data = FileAttachment("./data/ghs_points_pop_floods_admin.csv").csv({ typed: false}).then((data) => {
-  return data.slice(1)
+const popData = FileAttachment("./data/ghs_points_pop_floods_admin.csv").csv({ typed: false}).then((pop) => {
+  return pop.slice(1)
 });
+
+// COUNTRY
+// : 
+// "Brunei"
+// ENGTYPE_1
+// : 
+// "District"
+// ENGTYPE_2
+// : 
+// ""
+// GID_0
+// : 
+// "BRN"
+// GID_1
+// : 
+// "BRN.1_1"
+// GID_2
+// : 
+// ""
+// NAME_1
+// : 
+// "Belait"
+// NAME_2
+// : 
+// ""
+// col_index
+// : 
+// "539"
+// col_index_2
+// : 
+// "539"
+// fid
+// : 
+// "27"
+// flood_frequency_max
+// : 
+// "2"
+// flood_frequency_mean
+// : 
+// "0.159375"
+// flood_frequency_median
+// : 
+// "0"
+// flood_frequency_min
+// : 
+// "0"
+// id
+// : 
+// "497534"
+// id_2
+// : 
+// "497534"
+// lat
+// : 
+// "4.58393805409188"
+// long
+// : 
+// "114.224137788124"
+// pop_int
+// : 
+// "24454"
+// pop_max
+// : 
+// "2771.322265625"
+// pop_mean
+// : 
+// "905.689852657417"
+// pop_median
+// : 
+// "460.841796875"
+// pop_min
+// : 
+// "0.0333612039685249"
+// pop_sum
+// : 
+// "24453.6260217503"
+// row_index
+// : 
+// "575"
+// row_index_2
+// : 
+// "575"
 
 // Country boundaries
 const countriesAdminTopo = FileAttachment("./data/admin_all_countries.json").json()
@@ -72,9 +153,7 @@ const countries = world.then((world) => topojson.feature(world, world.objects.co
 
 const countryLabels = FileAttachment("./data/country_labels.csv")
   .csv({ typed: true })
-  .then((data) => {
-    return data.slice(1)
-  });
+  .then((data) => { return data.slice(1) });
 
 const colorRange = [
   [1, 152, 189, ALPHA],
@@ -99,23 +178,6 @@ const colorLegend = Plot.plot({
   ]
 });
 
-function getTooltip({ object }) {
-  if (!object) return null;
-  const { properties } = object;
-  if (!properties) return null;
-  const { COUNTRY, NAME_1, NAME_2 } = properties;
-
-  return object && properties && {
-    html: `<div>
-        <h3>${NAME_2 ? NAME_2 + ", " : ""}${NAME_1 ? NAME_1 + ", " : ""}${COUNTRY}</h3>
-      </div>`,
-    style: {
-      backgroundColor: '#000',
-      fontSize: '0.8em'
-    }
-  };
-}
-
 const effects = [
   new LightingEffect({
     ambientLight: new AmbientLight({color: [255, 255, 255], intensity: 1.0}),
@@ -135,7 +197,54 @@ const t = (function* () {
 ```
 
 ```js
-console.log("seaAdmin: ", seaAdmin)
+const popDataMap = new Map([...new Set(popData.map(d => d["GID_1"] || d["GID_2"]))]
+  .map(gid => {
+    const filtPopData = popData.filter(d => (d["GID_1"] || d["GID_2"]) === gid )
+    const summFiltPopData = filtPopData.reduce((obj, d) => {
+      const { pop_int, flood_frequency_mean, flood_frequency_max } = d
+      const popInt = obj.popInt + +pop_int
+      const floodFreqMean = (obj.floodFreqMean + +flood_frequency_mean) / 2
+      const floodFreqMax = Math.max(obj.floodFreqMax, +flood_frequency_max)
+      return { gid, popInt, floodFreqMean, floodFreqMax }
+    }, { gid: "", popInt: 0, floodFreqMean: 0, floodFreqMax: 0 })
+    return summFiltPopData
+  })
+  .map(d => {
+    if (!d) return null
+    const { gid, popInt, floodFreqMean, floodFreqMax } = d
+    return [ gid, { popInt, floodFreqMean, floodFreqMax } ]
+  })
+)
+
+console.log("popDataMap: ", popDataMap)
+// console.log("seaAdmin: ", seaAdmin)
+
+function getTooltip({ object }) {
+  if (!object) return null;
+  const { properties } = object;
+  if (!properties) return null;
+  const { COUNTRY, NAME_1, NAME_2, GID_1, GID_2, area_sq_km } = properties;
+
+  if (!popDataMap.get(GID_1 || GID_2)) return null
+  const { popInt, floodFreqMean, floodFreqMax } = popDataMap.get(GID_1 || GID_2)
+
+  return object && properties && {
+    html: `<div>
+        <h3>${NAME_2 ? NAME_2 + ", " : ""}${NAME_1 ? NAME_1 + ", " : ""}${COUNTRY}</h3>
+        <ul>
+          <li>Area: ${area_sq_km} sq. km</li>
+          <li>Population: ${popInt}</li>
+          <li>Flood frequency max: ${floodFreqMax}</li>
+          <li>Flood frequency mean: ${floodFreqMean.toFixed(1)}</li>
+        </ul>
+      </div>`,
+    style: {
+      backgroundColor: '#000',
+      fontSize: '0.8em'
+    }
+  };
+}
+
 const seaCoords = { long: 115.9539243, lat: 1.7673744 }
 
 const initialViewState = {
@@ -271,7 +380,7 @@ function getLayers(){
     // }),
     new HexagonLayer({
       id: "heatmap",
-      data, 
+      data: popData, 
       coverage,
       radius,
       upperPercentile,
@@ -323,7 +432,7 @@ function getLayers(){
       getColor: [255, 128, 255],
       // getSize: 28,
       getTextAnchor: 'middle',
-      pickable: true,
+      // pickable: true,
       parameters: {
         depthTest: false // <-- Forces it to render on top
       }
