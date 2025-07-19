@@ -219,13 +219,13 @@ function getLayers(){
       getFillColor: [9, 16, 29, 0],
       getLineWidth: 100,
     }),
-    new GeoJsonLayer({
-      id: "flood-areas",
-      lineWidthMinPixels: 1,
-      data: floodAreas,
-      getLineColor: [150, 150, 150],
-      getFillColor: [255, 165, 0, 25],
-    }),
+    // new GeoJsonLayer({
+    //   id: "flood-areas",
+    //   lineWidthMinPixels: 1,
+    //   data: floodAreas,
+    //   getLineColor: [150, 150, 150],
+    //   getFillColor: [255, 165, 0, 25],
+    // }),
     // new GeoJsonLayer({
     //   id: "admin-flood-areas",
     //   lineWidthMinPixels: 1,
@@ -297,6 +297,7 @@ function getLayers(){
       extruded: true,
       getPosition: (d) => [ +d.long, +d.lat ], // [long, lat]
       getElevationWeight: d => +d.pop_sum,
+      // pickable: true,
       material: {
         ambient: 0.64,
         diffuse: 0.6,
@@ -307,9 +308,6 @@ function getLayers(){
         getColorWeight: [hoveredBoundary],
         colorRange: [hoveredBoundary]
       },
-      parameters: {
-        depthTest: false // <-- Forces it to render on top
-      }
     }),
     new GeoJsonLayer({
       id: "internal-boundaries",
