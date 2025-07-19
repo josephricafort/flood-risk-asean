@@ -13,6 +13,7 @@
     "@deck.gl/layers": "^9.1.12",
     "@deck.gl/mapbox": "^9.1.12",
     "@observablehq/framework": "^1.13.3",
+    "d3": "^7.9.0",
     "d3-dsv": "^3.0.1",
     "d3-geo": "^3.1.1",
     "d3-time-format": "^4.1.0",

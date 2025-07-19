@@ -7,8 +7,7 @@ style: custom-style.css
 ```js
 import { geoContains } from "d3-geo";
 import {camelCaseToLocation} from "./components/utils.js"
-
-const ALPHA = 100;
+import * as d3 from "d3"
 
 const coverageForm = Inputs.range([0, 1], {value: 0.9, label: "Coverage", step: 0.01});
 const radiusForm = Inputs.range([500, 20000], {value: 3800, label: "Radius", step: 100});
@@ -74,14 +73,27 @@ const countryLabels = FileAttachment("./data/country_labels.csv")
   .csv({ typed: true })
   .then((data) => { return data.slice(1) });
 
-// const colorRange = [
-//   [1, 152, 189, ALPHA],
-//   [73, 227, 206, ALPHA],
-//   [216, 254, 181, ALPHA],
-//   [254, 237, 177, ALPHA],
-//   [254, 173, 84, ALPHA],
-//   [209, 55, 78, ALPHA]
-// ];
+const effects = [
+  new LightingEffect({
+    ambientLight: new AmbientLight({color: [255, 255, 255], intensity: 1.0}),
+    pointLight: new PointLight({color: [255, 255, 255], intensity: 0.8, position: [-0.144528, 49.739968, 80000]}),
+    pointLight2: new PointLight({color: [255, 255, 255], intensity: 0.8, position: [-3.807751, 54.104682, 8000]})
+  })
+];
+
+const t = (function* () {
+  const duration = 1000;
+  const start = performance.now();
+  const end = start + duration;
+  let now;
+  while ((now = performance.now()) < end) yield d3.easeCubicInOut(Math.max(0, (now - start) / duration));
+  yield 1;
+})();
+```
+
+```js
+let hoveredBoundary = null
+let ALPHA = hoveredBoundary ? 255 : 100;
 
 const colorRange = [
   [1, 152, 189, ALPHA],     // blue-green
@@ -99,6 +111,7 @@ const colorRange = [
 
 function getColorRange(alpha) { 
   return [
+  [0, 0, 0, 0],             // force value for zero values
   [1, 152, 189, alpha],     // blue-green
   [37, 190, 197, alpha],    // lighter blue-green
   [73, 227, 206, alpha],    // aqua
@@ -127,25 +140,6 @@ const colorLegend = Plot.plot({
   ]
 });
 
-const effects = [
-  new LightingEffect({
-    ambientLight: new AmbientLight({color: [255, 255, 255], intensity: 1.0}),
-    pointLight: new PointLight({color: [255, 255, 255], intensity: 0.8, position: [-0.144528, 49.739968, 80000]}),
-    pointLight2: new PointLight({color: [255, 255, 255], intensity: 0.8, position: [-3.807751, 54.104682, 8000]})
-  })
-];
-
-const t = (function* () {
-  const duration = 1000;
-  const start = performance.now();
-  const end = start + duration;
-  let now;
-  while ((now = performance.now()) < end) yield d3.easeCubicInOut(Math.max(0, (now - start) / duration));
-  yield 1;
-})();
-```
-
-```js
 const popDataMap = new Map([...new Set(popData.map(d => d["GID_1"] || d["GID_2"]))]
   .map(gid => {
     const filtPopData = popData.filter(d => (d["GID_1"] || d["GID_2"]) === gid )
@@ -215,51 +209,23 @@ const [
   CTRY_LONG, CTRY_LAT
 ] = Array.from({ length: 6 }, (_, i) => i);
 
-let hoveredBoundary = null
-
 function getLayers(){
   return [
     new GeoJsonLayer({
       id: "base-map",
       data: countries,
-      lineWidthMinPixels: 1,
-      getLineColor: [200, 200, 200, 50],
-      getFillColor: [9, 16, 29, 255],
+      lineWidthMinPixels: 0,
+      getLineColor: [200, 200, 200, 200],
+      getFillColor: [9, 16, 29, 0],
       getLineWidth: 100,
     }),
     new GeoJsonLayer({
-      id: "internal-boundaries",
-      data: seaAdmin,
-      lineWidthUnits: "pixels",
-      lineWidthMinPixels: 0.5,
-      lineCapRounded: true,
-      lineJointRounded: true,
-      getLineColor: [255, 255, 255],
-      getFillColor: [9, 16, 29, 200],
-      pickable: true,
-      onHover: info => {
-        if (info.object) {
-          hoveredBoundary = (info.object.properties.GID_1 || "") + (info.object.properties.GID_2 || "");
-        } else {
-          hoveredBoundary = null;
-        }
-        deckInstance.setProps({ layers: getLayers() });
-      },
-      getLineWidth: d => {
-        const isHovered = hoveredBoundary === (d.properties.GID_1 || "") + (d.properties.GID_2 || "");
-        return isHovered ? 5 : 0.5;
-      },
-      updateTriggers: {
-        getLineWidth: [hoveredBoundary]
-      }
+      id: "flood-areas",
+      lineWidthMinPixels: 1,
+      data: floodAreas,
+      getLineColor: [150, 150, 150],
+      getFillColor: [255, 165, 0, 25],
     }),
-    // new GeoJsonLayer({
-    //   id: "flood-areas",
-    //   lineWidthMinPixels: 1,
-    //   data: floodAreas,
-    //   getLineColor: [150, 150, 150],
-    //   getFillColor: [255, 165, 0, 25],
-    // }),
     // new GeoJsonLayer({
     //   id: "admin-flood-areas",
     //   lineWidthMinPixels: 1,
@@ -272,73 +238,29 @@ function getLayers(){
       id: "rivers",
       lineWidthMinPixels: 5,
       data: hydroRivers,
+      opacity: 0.8,
       // colorRange,
       getLineColor: [150, 150, 150],
-      getFillColor: [255, 165, 0, 25],
+      getFillColor: [255, 165, 0, 0],
     }),
     new GeoJsonLayer({
       id: "lakes",
       lineWidthMinPixels: 5,
       data: naturalearthLakes,
+      opacity: 0.8,
       // colorRange,
       getLineColor: [150, 150, 150],
       getFillColor: [150, 150, 150, 255],
     }),
-    // new ContourLayer({
-    //   id: "flood-contours",
-    //   data,
-    //   cellSize: 3000,
-    //   contours: [
-    //     { threshold: 5,  color: [25, 132, 197], strokeWidth: 2, zIndex: 1 },
-    //     { threshold: 10, color: [34, 167, 240], strokeWidth: 2, zIndex: 1 },
-    //     { threshold: 15, color: [99, 191, 240], strokeWidth: 2, zIndex: 1 },
-    //     { threshold: 20, color: [167, 213, 237], strokeWidth: 2, zIndex: 1 },
-    //     { threshold: 25, color: [226, 226, 226], strokeWidth: 2, zIndex: 1 },
-    //     { threshold: 30, color: [225, 166, 146], strokeWidth: 2, zIndex: 1 },
-    //     { threshold: 35, color: [222, 110, 86], strokeWidth: 2, zIndex: 1 },
-    //     { threshold: 40, color: [225, 75, 49], strokeWidth: 2, zIndex: 1 },
-    //     { threshold: 45, color: [194, 55, 40], strokeWidth: 2, zIndex: 1 }
-    //   ],
-    //   getPosition: d => [ +d.long, +d.lat ], // [long, lat]
-    //   getWeight: d => +d.flood_frequency_max,
-    //   pickable: true
-    // }),
-    // new HeatmapLayer({
-    //   id: "flood-contours",
-    //   data,
-    //   // colorRange,
-    //   aggregation: 'MEAN',
-    //   getPosition: d => [ +d.long, +d.lat ], // [long, lat]
-    //   getWeight: d => +d.flood_frequency_mean,
-    //   radiusPixels: 25,
-    //   threshold: 0.02
-    // }),
-    // new ContourLayer({
-    //   id: 'contour-layer',
-    //   data: 'https://raw.githubusercontent.com/visgl/deck.gl-data/master/website/sf-bike-parking.json',
-
-    //   cellSize: 200,
-    //   contours: [
-    //     {threshold: 1, color: [255, 0, 0], strokeWidth: 2, zIndex: 1},
-    //     // {threshold: [3, 10], color: [55, 0, 55], zIndex: 0},
-    //     // {threshold: 5, color: [0, 255, 0], strokeWidth: 6, zIndex: 2},
-    //     // {threshold: 15, color: [0, 0, 255], strokeWidth: 4, zIndex: 3}
-    //   ],
-    //   getPosition: d => d.COORDINATES,
-    //   getWeight: d => d.SPACES,
-    //   pickable: true
-    // }),
+    // Entire map
     new HexagonLayer({
       id: "heatmap",
       data: popData, 
       coverage,
       radius,
       upperPercentile,
-      // getOpacity: d => {
-      //   const isHovered = hoveredBoundary === (d.GID_1 || "") + (d.GID_2 || "");
-      //   return isHovered ? 1 : 0.25
-      // },
-      colorRange: getColorRange(200),
+      opacity: 0.15,
+      colorRange: colorRange,
       colorAggregation: "MAX",
       getColorWeight: d => +d.flood_frequency_max,
       elevationScale: 100,
@@ -347,16 +269,76 @@ function getLayers(){
       extruded: true,
       getPosition: (d) => [ +d.long, +d.lat ], // [long, lat]
       getElevationWeight: d => +d.pop_sum,
-      // pickable: true,
+      pickable: false,
       material: {
         ambient: 0.64,
         diffuse: 0.6,
         shininess: 32,
         specularColor: [51, 51, 51]
       },
-      // updateTriggers: {
-      //   getOpacity: [hoveredBoundary]
-      // }
+    }),
+    // Hovered layer
+    new HexagonLayer({
+      id: "hex-hovered",
+      data: popData, 
+      coverage,
+      radius,
+      upperPercentile,
+      colorDomain: [0, 48],
+      colorRange: hoveredBoundary ? getColorRange(255) : getColorRange(100),
+      colorAggregation: "MAX",
+      getColorWeight: d => { 
+        const alphaHovered = hoveredBoundary === ((d.GID_1 || "") + (d.GID_2 || ""));
+        return alphaHovered ? +d.flood_frequency_max : 0
+      },
+      elevationScale: 100,
+      elevationRange: [0, 5000 * t],
+      elevationAggregation: "MAX",
+      extruded: true,
+      getPosition: (d) => [ +d.long, +d.lat ], // [long, lat]
+      getElevationWeight: d => +d.pop_sum,
+      material: {
+        ambient: 0.64,
+        diffuse: 0.6,
+        shininess: 32,
+        specularColor: [51, 51, 51]
+      },
+      updateTriggers: {
+        getColorWeight: [hoveredBoundary],
+        colorRange: [hoveredBoundary]
+      },
+      parameters: {
+        depthTest: false // <-- Forces it to render on top
+      }
+    }),
+    new GeoJsonLayer({
+      id: "internal-boundaries",
+      data: seaAdmin,
+      lineWidthUnits: "pixels",
+      lineWidthMinPixels: 0.5,
+      lineCapRounded: true,
+      lineJointRounded: true,
+      getLineColor: [255, 255, 255, 200],
+      getFillColor: [9, 16, 29, 0],
+      pickable: true,
+      onHover: info => {
+        if (info.object) {
+          hoveredBoundary = (info.object.properties.GID_1 || "") + (info.object.properties.GID_2 || "");
+        } else {
+          hoveredBoundary = null;
+        }
+        deckInstance.setProps({ layers: getLayers() });
+      },
+      getLineWidth: d => {
+        const isHovered = hoveredBoundary === ((d.properties.GID_1 || "") + (d.properties.GID_2 || ""));
+        return isHovered ? 5 : 0;
+      },
+      updateTriggers: {
+        getLineWidth: [hoveredBoundary]
+      },
+      parameters: {
+        depthTest: false // <-- Forces it to render on top
+      }
     }),
     // new TextLayer({
     //   id: 'admin-labels',
