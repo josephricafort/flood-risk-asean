@@ -13,21 +13,15 @@ const coverageForm = Inputs.range([0, 1], {value: 0.9, label: "Coverage", step: 
 const radiusForm = Inputs.range([500, 20000], {value: 3800, label: "Radius", step: 100});
 const upperPercentileForm = Inputs.range([0, 100], {value: 100, label: "Upper percentile", step: 1});
 
-const coverage = view(coverageForm)
-const radius = view(radiusForm)
-const upperPercentile = view(upperPercentileForm)
+const coverage = 0.9; // view(coverageForm)
+const radius = 3800; // view(radiusForm)
+const upperPercentile = 100; // view(upperPercentileForm)
 ```
 
 <div style="margin: 0;">
-<div class="inputs">
-    ${coverageForm}
-    ${radiusForm}
-    ${upperPercentileForm}
-</div>
 <figure style="max-width: none; position: relative; margin: 0;">
   <div id="container" style="border-radius: 8px; overflow: hidden; background: rgb(18, 35, 48); height: 100vh; margin: 0; "></div>
   <div style="position: absolute; top: 1rem; right: 1rem; filter: drop-shadow(0 0 4px rgba(0,0,0,.5));">${colorLegend}</div>
-  <figcaption>Data: <a href="https://www.data.gov.uk/dataset/cb7ae6f0-4be6-4935-9277-47e5ce24a11f/road-safety-data">Department for Transport</a></figcaption>
 </figure>
 </div>
 
@@ -211,14 +205,14 @@ const [
 
 function getLayers(){
   return [
-    new GeoJsonLayer({
-      id: "base-map",
-      data: countries,
-      lineWidthMinPixels: 0,
-      getLineColor: [200, 200, 200, 200],
-      getFillColor: [9, 16, 29, 0],
-      getLineWidth: 100,
-    }),
+    // new GeoJsonLayer({
+    //   id: "base-map",
+    //   data: countries,
+    //   lineWidthMinPixels: 0,
+    //   getLineColor: [200, 200, 200, 200],
+    //   getFillColor: [9, 16, 29, 0],
+    //   getLineWidth: 1000,
+    // }),
     // new GeoJsonLayer({
     //   id: "flood-areas",
     //   lineWidthMinPixels: 1,
@@ -234,24 +228,24 @@ function getLayers(){
     //   getLineColor: [150, 150, 150],
     //   getFillColor: [255, 165, 0, 25],
     // }),
-    new GeoJsonLayer({
-      id: "rivers",
-      lineWidthMinPixels: 5,
-      data: hydroRivers,
-      opacity: 0.8,
-      // colorRange,
-      getLineColor: [150, 150, 150],
-      getFillColor: [255, 165, 0, 0],
-    }),
-    new GeoJsonLayer({
-      id: "lakes",
-      lineWidthMinPixels: 5,
-      data: naturalearthLakes,
-      opacity: 0.8,
-      // colorRange,
-      getLineColor: [150, 150, 150],
-      getFillColor: [150, 150, 150, 255],
-    }),
+    // new GeoJsonLayer({
+    //   id: "rivers",
+    //   lineWidthMinPixels: 5,
+    //   data: hydroRivers,
+    //   opacity: 0.8,
+    //   // colorRange,
+    //   getLineColor: [150, 150, 150],
+    //   getFillColor: [255, 165, 0, 0],
+    // }),
+    // new GeoJsonLayer({
+    //   id: "lakes",
+    //   lineWidthMinPixels: 5,
+    //   data: naturalearthLakes,
+    //   opacity: 0.8,
+    //   // colorRange,
+    //   getLineColor: [150, 150, 150],
+    //   getFillColor: [150, 150, 150, 255],
+    // }),
     // Entire map
     new HexagonLayer({
       id: "heatmap",
@@ -360,20 +354,20 @@ function getLayers(){
     //   //   getText: deckInstance.viewState.zoom
     //   // }
     // }),
-    new TextLayer({
-      id: 'country-labels',
-      data: countryLabels,
-      getPosition: d => [ +d["long_c"], +d["lat_c"] ],
-      getText: d => d["COUNTRY"],
-      getAlignmentBaseline: 'center',
-      getColor: [255, 128, 255],
-      // getSize: 28,
-      getTextAnchor: 'middle',
-      // pickable: true,
-      parameters: {
-        depthTest: false // <-- Forces it to render on top
-      }
-    }),
+    // new TextLayer({
+    //   id: 'country-labels',
+    //   data: countryLabels,
+    //   getPosition: d => [ +d["long_c"], +d["lat_c"] ],
+    //   getText: d => d["COUNTRY"],
+    //   getAlignmentBaseline: 'center',
+    //   getColor: [255, 128, 255],
+    //   // getSize: 28,
+    //   getTextAnchor: 'middle',
+    //   // pickable: true,
+    //   parameters: {
+    //     depthTest: false // <-- Forces it to render on top
+    //   }
+    // }),
   ]
 }
 
